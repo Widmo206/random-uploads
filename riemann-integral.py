@@ -26,7 +26,7 @@ def main():
     print("No. sub-intervals:")
     N = get_input(int, True, (0, 10000), prompt="N = ")
 
-    plot(f1, a, b, N, title="Graph of $f(x)=\sqrt{1-x^{2}}$")
+    plot(f1, a, b, N, title=r"Graph of $f(x)=\sqrt{1-x^{2}}$")
 
     print(f"Rieman sum (left):  {riemann_left(f1, a, b, N)}")
     print(f"Rieman sum (right): {riemann_right(f1, a, b, N)}")
@@ -46,7 +46,7 @@ def main():
     print("No. sub-intervals:")
     N = get_input(int, True, (0, 10000), prompt="N = ")
 
-    plot(f2, a, b, N, title="Graph of $\Phi(x)=\frac{1}{\sqrt{2 \pi}} e^{-x^{2}/2}$")
+    plot(f2, a, b, N, title=r"Graph of $\Phi(x)=\frac{1}{\sqrt{2 \pi}} e^{-x^{2}/2}$")
 
     print(f"Rieman sum (left):  {riemann_left(f2, a, b, N)}")
     print(f"Rieman sum (right): {riemann_right(f2, a, b, N)}")
@@ -97,12 +97,12 @@ def plot(func: Callable, a: float, b: float, points: int=101, title: str=None):
     plt.title(title)
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.legend(loc="upper right")
     plt.grid(True)
 
     plt.plot(interval, zero, "k--", label="x = 0")
     plt.plot(interval, func(interval), next(formats), label=f"{func.__name__}(x)")
 
+    plt.legend(loc="upper right")
     plt.show()
 
 
