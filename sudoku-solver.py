@@ -6,7 +6,7 @@ Created on 2025.08.28
 """
 
 
-def InvalidBoard(ValueError):
+class InvalidBoard(ValueError):
     pass
 
 
