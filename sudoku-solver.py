@@ -6,10 +6,6 @@ Created on 2025.08.28
 """
 
 
-class InvalidBoard(ValueError):
-    pass
-
-
 def main():
     # s = Solver()
     s = Solver([[8, 0, 0, 1, 0, 9, 0, 4, 7],
@@ -24,16 +20,42 @@ def main():
 
     # s.populate_board()
     print(s)
-
     print(repr(s))
+
     print()
-    print(s.initialize_wave_function())
+    s.initialize_wave_function()
+    print(s.wave)
+
+    print()
+    s.partial_collapse()
 
 
+def get_choice(allowed_values: list, prompt: str="> ") -> str:
+    while True:
+        raw_in = input(prompt)
+
+        if raw_in in allowed_values:
+            return raw_in
+        else:
+            continue
+
+
+class InvalidBoard(ValueError):
+    """Raised when an inconsistency in the board is detected.
+
+    ex.: when an empty cell has no valid value
+    """
+    ...
+
+
+class SkillIssue(ValueError):
+    """Raised when the Solver can't solve a board with available algorithms."""
+    ...
 
 
 class Solver(object):
     board: list[list[int]]
+    wave:  list[list[list[int]] | None]
     size = 9
 
     corner = "+"
@@ -104,7 +126,7 @@ class Solver(object):
         return result
 
 
-    def initialize_wave_function(self) -> list[list[list[int]] | None]:
+    def initialize_wave_function(self) -> None:
         # TODO: wrap the list mess in a class x2
         wave = []
 
@@ -122,7 +144,7 @@ class Solver(object):
                 possibilities = self.get_valid_values(x, y)
 
                 # sanity check
-                if len(possibilities) == 0:
+                if possibilities == []:
                     raise InvalidBoard(f"Grid position {x}, {y} has no valid value")
 
                 column.append(possibilities)
@@ -130,7 +152,7 @@ class Solver(object):
             wave.append(column)
 
         # TODO: add a check for a solved board
-        return wave
+        self.wave = wave
 
 
     def get_valid_values(self, x: int, y: int):
@@ -148,9 +170,25 @@ class Solver(object):
         return possibilities
 
 
-    def partial_collapse(self, wave: list[list[list[int]] | None]) -> list[list[list[int]] | None]:
+    def partial_collapse(self) -> None:
         # TODO: wrap the list mess in a class x3
-        raise NotImplementedError
+        wave = self.wave
+        stack = []
+
+        for x, column in enumerate(wave):
+            for y, cell in enumerate(column):
+                if cell is None:
+                    continue
+
+                if cell == []:
+                    raise InvalidBoard(f"Grid position {x}, {y} has no valid value")
+
+                if len(cell) == 1:
+                    stack.append((x, y))
+
+        print(stack)
+
+
 
 
     def populate_board(self):
@@ -187,10 +225,10 @@ class Solver(object):
             c += 1
 
     def get_column(self, column: int) -> list[int]:
-        return self.board[column]
+        return [cell for cell in self.board[column]]
 
 
-    def get_row(self, row: int) -> list[int]:
+    def get_row(self, row: int) -> [int]:
         return [self.board[column][row] for column in range(self.size)]
 
     def get_box(self, x: int, y: int) -> list[int]:
@@ -209,16 +247,6 @@ class Solver(object):
             if (x + 1) % 3 == 0:
                 result += self.corner
         return result
-
-
-def get_choice(allowed_values: list, prompt: str="> ") -> str:
-    while True:
-        raw_in = input(prompt)
-
-        if raw_in in allowed_values:
-            return raw_in
-        else:
-            continue
 
 
 if __name__ == "__main__":
