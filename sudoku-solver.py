@@ -8,15 +8,25 @@ Created on 2025.08.28
 
 def main():
     # s = Solver()
-    s = Solver([[8, 0, 0, 1, 0, 9, 0, 4, 7],
-                [1, 0, 4, 5, 8, 0, 0, 9, 0],
-                [5, 0, 0, 4, 2, 3, 0, 0, 1],
-                [0, 8, 3, 0, 0, 0, 9, 6, 0],
-                [6, 0, 0, 0, 9, 8, 0, 7, 0],
-                [0, 0, 7, 0, 0, 2, 0, 0, 4],
-                [7, 0, 0, 2, 3, 5, 0, 0, 0],
-                [0, 2, 0, 9, 1, 0, 0, 0, 8],
-                [4, 0, 0, 8, 0, 6, 0, 2, 0]])
+    # s = Solver([[8, 0, 0, 1, 0, 9, 0, 4, 7],
+    #             [1, 0, 4, 5, 8, 0, 0, 9, 0],
+    #             [5, 0, 0, 4, 2, 3, 0, 0, 1],
+    #             [0, 8, 3, 0, 0, 0, 9, 6, 0],
+    #             [6, 0, 0, 0, 9, 8, 0, 7, 0],
+    #             [0, 0, 7, 0, 0, 2, 0, 0, 4],
+    #             [7, 0, 0, 2, 3, 5, 0, 0, 0],
+    #             [0, 2, 0, 9, 1, 0, 0, 0, 8],
+    #             [4, 0, 0, 8, 0, 6, 0, 2, 0]])
+
+    s = Solver([[9, 0, 6, 0, 2, 0, 8, 0, 0],
+                [0, 4, 0, 9, 3, 0, 0, 6, 0],
+                [3, 7, 8, 0, 0, 6, 0, 0, 0],
+                [0, 0, 0, 0, 0, 5, 2, 0, 9],
+                [0, 0, 3, 0, 4, 0, 1, 0, 0],
+                [1, 0, 5, 2, 0, 0, 0, 0, 0],
+                [0, 0, 0, 4, 0, 0, 5, 2, 8],
+                [0, 1, 0, 0, 8, 3, 0, 9, 0],
+                [4, 0, 9, 0, 7, 0, 6, 0, 0]])
 
     # s.populate_board()
     print(s)
@@ -24,10 +34,12 @@ def main():
 
     print()
     s.initialize_wave_function()
-    print(s.wave)
+    # print(s.wave)
 
     print()
     s.partial_collapse()
+    print(s)
+    # print(s.wave)
 
 
 def get_choice(allowed_values: list, prompt: str="> ") -> str:
@@ -172,10 +184,9 @@ class Solver(object):
 
     def partial_collapse(self) -> None:
         # TODO: wrap the list mess in a class x3
-        wave = self.wave
-        stack = []
+        queue = []
 
-        for x, column in enumerate(wave):
+        for x, column in enumerate(self.wave):
             for y, cell in enumerate(column):
                 if cell is None:
                     continue
@@ -184,11 +195,66 @@ class Solver(object):
                     raise InvalidBoard(f"Grid position {x}, {y} has no valid value")
 
                 if len(cell) == 1:
-                    stack.append((x, y))
+                    queue.append((x, y))
 
-        print(stack)
+        # print(stack)
+
+        while len(queue) > 0:
+            cell = queue.pop()
+            self.collapse_cell(*cell, queue)
 
 
+    def collapse_cell(self, x: int, y: int, queue) -> None:
+        value = self.wave[x][y][0]
+        self.board[x][y] = value
+        self.wave[x][y] = None
+
+        # update column
+        for j, cell in enumerate(self.wave[x]):
+            if cell is None:
+                continue
+
+            for index, cell_value in enumerate(cell):
+
+                if cell_value == value:
+                    # print(f"removing {cell_value} from {x}, {j}")
+                    del self.wave[x][j][index]
+                    if len(cell) <= 1 and (x, j) not in queue:
+                        queue.append((x, j))
+
+        # update row
+        for i in range(self.size):
+            cell = self.wave[i][y]
+
+            if cell is None:
+                continue
+
+            for index, cell_value in enumerate(cell):
+
+                if cell_value == value:
+                    # print(f"removing {cell_value} from {i}, {y}")
+                    del self.wave[i][y][index]
+                    if len(cell) <= 1 and (i, y) not in queue:
+                        queue.append((i, y))
+
+        # update box
+        box = []
+        box_x = x // 3
+        box_y = y // 3
+        for i in range(3*box_x, 3*box_x + 3):
+            for j in range(3*box_y, 3*box_y + 3):
+                cell = self.wave[i][j]
+
+                if cell is None:
+                    continue
+
+                for index, cell_value in enumerate(cell):
+
+                    if cell_value == value:
+                        # print(f"removing {cell_value} from {i}, {j}")
+                        del self.wave[i][j][index]
+                        if len(cell) <= 1 and (i, j) not in queue:
+                            queue.append((i, j))
 
 
     def populate_board(self):
