@@ -7,26 +7,28 @@ Created on 2025.08.28
 
 
 def main():
-    # s = Solver()
-    # s = Solver([[8, 0, 0, 1, 0, 9, 0, 4, 7],
-    #             [1, 0, 4, 5, 8, 0, 0, 9, 0],
-    #             [5, 0, 0, 4, 2, 3, 0, 0, 1],
-    #             [0, 8, 3, 0, 0, 0, 9, 6, 0],
-    #             [6, 0, 0, 0, 9, 8, 0, 7, 0],
-    #             [0, 0, 7, 0, 0, 2, 0, 0, 4],
-    #             [7, 0, 0, 2, 3, 5, 0, 0, 0],
-    #             [0, 2, 0, 9, 1, 0, 0, 0, 8],
-    #             [4, 0, 0, 8, 0, 6, 0, 2, 0]])
+    # b = Board()
+    # b = Board([[8, 0, 0, 1, 0, 9, 0, 4, 7],
+    #            [1, 0, 4, 5, 8, 0, 0, 9, 0],
+    #            [5, 0, 0, 4, 2, 3, 0, 0, 1],
+    #            [0, 8, 3, 0, 0, 0, 9, 6, 0],
+    #            [6, 0, 0, 0, 9, 8, 0, 7, 0],
+    #            [0, 0, 7, 0, 0, 2, 0, 0, 4],
+    #            [7, 0, 0, 2, 3, 5, 0, 0, 0],
+    #            [0, 2, 0, 9, 1, 0, 0, 0, 8],
+    #            [4, 0, 0, 8, 0, 6, 0, 2, 0]])
 
-    s = Solver([[9, 0, 6, 0, 2, 0, 8, 0, 0],
-                [0, 4, 0, 9, 3, 0, 0, 6, 0],
-                [3, 7, 8, 0, 0, 6, 0, 0, 0],
-                [0, 0, 0, 0, 0, 5, 2, 0, 9],
-                [0, 0, 3, 0, 4, 0, 1, 0, 0],
-                [1, 0, 5, 2, 0, 0, 0, 0, 0],
-                [0, 0, 0, 4, 0, 0, 5, 2, 8],
-                [0, 1, 0, 0, 8, 3, 0, 9, 0],
-                [4, 0, 9, 0, 7, 0, 6, 0, 0]])
+    b = Board([[9, 0, 6, 0, 2, 0, 8, 0, 0],
+               [0, 4, 0, 9, 3, 0, 0, 6, 0],
+               [3, 7, 8, 0, 0, 6, 0, 0, 0],
+               [0, 0, 0, 0, 0, 5, 2, 0, 9],
+               [0, 0, 3, 0, 4, 0, 1, 0, 0],
+               [1, 0, 5, 2, 0, 0, 0, 0, 0],
+               [0, 0, 0, 4, 0, 0, 5, 2, 8],
+               [0, 1, 0, 0, 8, 3, 0, 9, 0],
+               [4, 0, 9, 0, 7, 0, 6, 0, 0]])
+
+    s = Solver(b)
 
     # s.populate_board()
     print(s)
@@ -65,8 +67,60 @@ class SkillIssue(ValueError):
     ...
 
 
-class Solver(object):
+class Board(object):
     board: list[list[int]]
+    size: int
+
+
+    def __repr__(self):
+        return f"Board({repr(self.board)})"
+
+
+    def __init__(self, board: list[list[int]]=None, size: int = 9):
+        if board is None:
+            # initialize a new board
+            board = []
+
+            for x in range(size):
+                column = []
+                for y in range(size):
+                    column.append(0)
+                board.append(column)
+
+        self.board = board
+        self.size = size
+
+
+    def set_cell(self, x: int, y: int, value: int) -> None:
+        self.board[x][y] = value
+
+
+    def get_cell(self, x: int, y: int) -> float:
+        return self.board[x][y]
+
+
+    def get_column(self, column: int) -> list[int]:
+        return [cell for cell in self.board[column]]
+
+
+    def get_row(self, row: int) -> [int]:
+        return [self.get_cell(column, row) for column in range(self.size)]
+
+
+    def get_box(self, x: int, y: int) -> list[int]:
+        box = []
+        for i in range(3*x, 3*x + 3):
+            for j in range(3*y, 3*y + 3):
+                # print(f"{i}, {j}")
+                box.append(self.board[i][j])
+        return box
+
+
+
+
+
+class Solver(object):
+    board: Board
     wave:  list[list[list[int]] | None]
     size = 9
 
@@ -76,16 +130,10 @@ class Solver(object):
     cursor = ">"
 
 
-    def __init__(self, board: list[list[int]]=None):
-        # TODO: wrap the list mess in a class
+    def __init__(self, board: Board=None):
         if board is None:
-            board = []
+            board = Board()
 
-            for x in range(self.size):
-                column = []
-                for y in range(self.size):
-                    column.append(0)
-                board.append(column)
         else:
             # TODO: check if board is valid
             pass
@@ -120,7 +168,7 @@ class Solver(object):
                     cell = override[2]
 
                 else:
-                    cell = self.board[x][y]
+                    cell = self.board.get_cell(x, y)
                     if cell > 0:
                         cell = " " + str(cell)
                     else:
@@ -139,14 +187,14 @@ class Solver(object):
 
 
     def initialize_wave_function(self) -> None:
-        # TODO: wrap the list mess in a class x2
+        # TODO: wrap the list mess in a class
         wave = []
 
         for x in range(self.size):
             column = []
 
             for y in range(self.size):
-                cell = self.board[x][y]
+                cell = self.board.get_cell(x, y)
 
                 if cell > 0:
                     # cell is occupied
@@ -170,11 +218,11 @@ class Solver(object):
     def get_valid_values(self, x: int, y: int):
         possibilities = []
         for n in range(1, self.size+1):
-            if n in self.get_row(y):
+            if n in self.board.get_row(y):
                 continue
-            if n in self.get_column(x):
+            if n in self.board.get_column(x):
                 continue
-            if n in self.get_box(x // 3, y // 3):
+            if n in self.board.get_box(x // 3, y // 3):
                 continue
 
             possibilities.append(n)
@@ -204,9 +252,15 @@ class Solver(object):
             self.collapse_cell(*cell, queue)
 
 
+    def check_uniqueness(self, x: int, y: int) -> None:
+        for value in self.wave[x][y]:
+            raise NotImplementedError
+
+
+
     def collapse_cell(self, x: int, y: int, queue) -> None:
         value = self.wave[x][y][0]
-        self.board[x][y] = value
+        self.board.set_cell(x, y, value)
         self.wave[x][y] = None
 
         # update column
@@ -290,20 +344,7 @@ class Solver(object):
                     self.board[x][y] = int(choice)
             c += 1
 
-    def get_column(self, column: int) -> list[int]:
-        return [cell for cell in self.board[column]]
 
-
-    def get_row(self, row: int) -> [int]:
-        return [self.board[column][row] for column in range(self.size)]
-
-    def get_box(self, x: int, y: int) -> list[int]:
-        box = []
-        for i in range(3*x, 3*x + 3):
-            for j in range(3*y, 3*y + 3):
-                # print(f"{i}, {j}")
-                box.append(self.board[i][j])
-        return box
 
 
     def _make_line(self):
