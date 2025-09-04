@@ -68,6 +68,7 @@ class SkillIssue(ValueError):
 
 
 class Board(object):
+    """Stores the value in each cell on the board."""
     board: list[list[int]]
     size: int
 
@@ -92,22 +93,27 @@ class Board(object):
 
 
     def set_cell(self, x: int, y: int, value: int) -> None:
+        """Set the value of the cell x, y to value."""
         self.board[x][y] = value
 
 
-    def get_cell(self, x: int, y: int) -> float:
+    def get_cell(self, x: int, y: int) -> int:
+        """Get the value of cell x, y."""
         return self.board[x][y]
 
 
     def get_column(self, column: int) -> list[int]:
+        """Get the values of cells in the given column."""
         return [cell for cell in self.board[column]]
 
 
     def get_row(self, row: int) -> [int]:
+        """Get the values of cells in the given row."""
         return [self.get_cell(column, row) for column in range(self.size)]
 
 
     def get_box(self, x: int, y: int) -> list[int]:
+        """Get the values of cells in the given 3x3 box."""
         box = []
         for i in range(3*x, 3*x + 3):
             for j in range(3*y, 3*y + 3):
@@ -116,12 +122,110 @@ class Board(object):
         return box
 
 
+class WaveFunction(object):
+    """Stores the possible values for each empty cell."""
+    wave: list[list[list[int]] | None]
+    size: int
 
+
+    def __init__(self, board: Board):
+        self.size = board.size
+        self.initialize_wave_function(board)
+
+
+    def __repr__(self):
+        return f"WaveFunction({repr(self.wave)})"
+
+
+    def initialize_wave_function(self, board: Board) -> None:
+        """Find all possible values for each empty cell on the board."""
+        # TODO: wrap the list mess in a class
+        wave = []
+
+        for x in range(self.size):
+            column = []
+
+            for y in range(self.size):
+                cell = board.get_cell(x, y)
+
+                if cell > 0:
+                    # cell is occupied
+                    column.append(None)
+                    continue
+
+                possibilities = self.get_valid_values(x, y, board)
+
+                # sanity check
+                if possibilities == []:
+                    raise InvalidBoard(f"Grid position {x}, {y} has no valid value")
+
+                column.append(possibilities)
+
+            wave.append(column)
+
+        # TODO: add a check for a solved board
+        self.wave = wave
+
+
+    def get_valid_values(self, x: int, y: int, board: Board) -> list[int]:
+        """Get all possible values for a given cell."""
+        possibilities = []
+        for n in range(1, self.size+1):
+            if n in board.get_row(y):
+                continue
+            if n in board.get_column(x):
+                continue
+            if n in board.get_box(x // 3, y // 3):
+                continue
+
+            possibilities.append(n)
+
+        return possibilities
+
+
+    def set_cell(self, x: int, y: int, value: list[int]) -> None:
+        """Set the value of the cell x, y to value."""
+        self.wave[x][y] = value
+
+
+    def get_cell(self, x: int, y: int) -> list[float]:
+        """Get the calculated values of cell x, y."""
+        return self.wave[x][y]
+
+
+    def get_column(self, column: int) -> list[int]:
+        """Get the calculated values for each cell in the given column."""
+        return [cell for cell in self.wave[column]]
+
+
+    def get_row(self, row: int) -> list[int]:
+        """Get the calculated values for each cell in the given row."""
+        return [self.get_cell(column, row) for column in range(self.size)]
+
+
+    def get_box(self, x: int, y: int) -> list[int]:
+        """Get the calculated values for each cell in the given 3x3 box."""
+        box = []
+        for i in range(3*x, 3*x + 3):
+            for j in range(3*y, 3*y + 3):
+                # print(f"{i}, {j}")
+                box.append(self.wave[i][j])
+        return box
+
+
+    def remove(self, x: int, y: int, index: int):
+        """Remove a specific value from the given cell.
+
+        Uses index instead of value because this function is a drop-in
+        replacement for a del statement.
+        """
+        del self.wave[x][y][index]
 
 
 class Solver(object):
+    """Handles the solving."""
     board: Board
-    wave:  list[list[list[int]] | None]
+    wave:  WaveFunction
     size = 9
 
     corner = "+"
@@ -187,54 +291,20 @@ class Solver(object):
 
 
     def initialize_wave_function(self) -> None:
-        # TODO: wrap the list mess in a class
-        wave = []
-
-        for x in range(self.size):
-            column = []
-
-            for y in range(self.size):
-                cell = self.board.get_cell(x, y)
-
-                if cell > 0:
-                    # cell is occupied
-                    column.append(None)
-                    continue
-
-                possibilities = self.get_valid_values(x, y)
-
-                # sanity check
-                if possibilities == []:
-                    raise InvalidBoard(f"Grid position {x}, {y} has no valid value")
-
-                column.append(possibilities)
-
-            wave.append(column)
-
-        # TODO: add a check for a solved board
-        self.wave = wave
-
-
-    def get_valid_values(self, x: int, y: int):
-        possibilities = []
-        for n in range(1, self.size+1):
-            if n in self.board.get_row(y):
-                continue
-            if n in self.board.get_column(x):
-                continue
-            if n in self.board.get_box(x // 3, y // 3):
-                continue
-
-            possibilities.append(n)
-
-        return possibilities
+        """Create a new WaveFunction."""
+        self.wave = WaveFunction(self.board)
 
 
     def partial_collapse(self) -> None:
-        # TODO: wrap the list mess in a class x3
+        """Use a simplified wave function collapse algorithm to fill in empty
+        cells.
+
+        Make sure the WaveFunction is initialized before calling this.
+        """
         queue = []
 
-        for x, column in enumerate(self.wave):
+        for x in range(self.size):
+            column = self.wave.get_column(x)
             for y, cell in enumerate(column):
                 if cell is None:
                     continue
@@ -259,12 +329,15 @@ class Solver(object):
 
 
     def collapse_cell(self, x: int, y: int, queue) -> None:
-        value = self.wave[x][y][0]
+        """Set the value of a cell with one remaining value and update its
+        neighbors.
+        """
+        value = self.wave.get_cell(x, y)[0]
         self.board.set_cell(x, y, value)
-        self.wave[x][y] = None
+        self.wave.set_cell(x, y, None)
 
         # update column
-        for j, cell in enumerate(self.wave[x]):
+        for j, cell in enumerate(self.wave.get_column(x)):
             if cell is None:
                 continue
 
@@ -272,13 +345,13 @@ class Solver(object):
 
                 if cell_value == value:
                     # print(f"removing {cell_value} from {x}, {j}")
-                    del self.wave[x][j][index]
+                    self.wave.remove(x, j, index)
                     if len(cell) <= 1 and (x, j) not in queue:
                         queue.append((x, j))
 
         # update row
         for i in range(self.size):
-            cell = self.wave[i][y]
+            cell = self.wave.get_cell(i, y)
 
             if cell is None:
                 continue
@@ -287,7 +360,7 @@ class Solver(object):
 
                 if cell_value == value:
                     # print(f"removing {cell_value} from {i}, {y}")
-                    del self.wave[i][y][index]
+                    self.wave.remove(i, y, index)
                     if len(cell) <= 1 and (i, y) not in queue:
                         queue.append((i, y))
 
@@ -297,7 +370,7 @@ class Solver(object):
         box_y = y // 3
         for i in range(3*box_x, 3*box_x + 3):
             for j in range(3*box_y, 3*box_y + 3):
-                cell = self.wave[i][j]
+                cell = self.wave.get_cell(i, j)
 
                 if cell is None:
                     continue
@@ -306,12 +379,16 @@ class Solver(object):
 
                     if cell_value == value:
                         # print(f"removing {cell_value} from {i}, {j}")
-                        del self.wave[i][j][index]
+                        self.wave.remove(i, j, index)
                         if len(cell) <= 1 and (i, j) not in queue:
                             queue.append((i, j))
 
 
     def populate_board(self):
+        """Prompt the user to fill in the cells on the board.
+
+        The board does not need to be empty.
+        """
         # allowing "0" and " " as delete
         allowed_values = ("", ".", " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
 
@@ -321,7 +398,7 @@ class Solver(object):
             y = c // self.size
             x = c % self.size
 
-            cell = self.board[x][y]
+            cell = self.board.get_cell(x, y)
             # print board with current cell highlighted
             str_cell = str(cell) if cell > 0 else " "
             print(self.__str__((x, y, self.cursor+str_cell)))
@@ -341,13 +418,17 @@ class Solver(object):
                 case _:
                     # 0-9 digits only (0 is clear)
                     # everything else got filtered out by get_choice()
-                    self.board[x][y] = int(choice)
+                    self.board.set_cell(x, y, int(choice))
             c += 1
 
-
+        self.wave = WaveFunction(self.board)
 
 
     def _make_line(self):
+        """Creates a horizontal text line.
+
+        Used for drawing the board in a CLI.
+        """
         result = self.corner
         for x in range(self.size):
             result += self.h_edge
